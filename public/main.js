@@ -72,6 +72,13 @@ function updateTimer() {
   const elapsed = state.completedAt ? anchoredElapsedMs : anchoredElapsedMs + (performance.now() - timeAnchor);
   $('#timer').textContent = formatElapsed(elapsed);
 }
+function setIntroVideoVisible(visible) {
+  // Al empezar una misión se detiene el video y no continúa sonando detrás del juego.
+  const video = $('#introVideo');
+  if (!video) return;
+  const desiredSrc = visible ? video.dataset.embed : 'about:blank';
+  if (video.getAttribute('src') !== desiredSrc) video.setAttribute('src', desiredSrc);
+}
 function renderState(data) {
   const wasLevel = state?.currentLevel;
   const wasCompleted = Boolean(state?.completedAt);
@@ -79,9 +86,11 @@ function renderState(data) {
   if (!data.started) {
     $('#workspace').hidden = true;
     $('#joinOverlay').hidden = false;
+    setIntroVideoVisible(true);
     return;
   }
   $('#joinOverlay').hidden = true;
+  setIntroVideoVisible(false);
   $('#workspace').hidden = false;
   $('#teamName').textContent = data.name;
   anchoredElapsedMs = data.elapsedMs;

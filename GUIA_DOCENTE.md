@@ -16,6 +16,17 @@
 - 18–22 minutos: competencia; deja que los equipos encuentren sus respuestas, y da una pista breve a quien se estanque (cada reto incluye botón de pistas).
 - 5 minutos: proyectar `/admin`, comentar los resultados, y preguntar qué significa que una contraseña esté escondida pero pueda leerse en el navegador.
 
+## Pantalla de cierre: matriz de debilidades
+
+Cuando se resuelven los cinco retos, aparece un archivo final con la siguiente relación:
+
+- **Amarillo** es débil frente a **Rojo**.
+- **Rojo** es débil frente a **Verde**.
+- **Verde** es débil frente a **Azul**.
+- **Azul** es débil frente a **Amarillo**.
+
+El video de la portada procede de https://youtu.be/5z5KkYpFvO4 y necesita conexión a Internet para reproducirse. Al iniciar la misión se detiene, aunque estuviera reproduciéndose. Esta matriz es información adicional al terminar y **no altera la puntuación**.
+
 ## Consideraciones para la clase
 
 - El ranking principal usa **menor tiempo registrado por equipo**, no la hora de llegada. Además se expone el **orden de llegada** porque un equipo puede comenzar después y hacer mejor tiempo.

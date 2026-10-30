@@ -45,10 +45,14 @@ test('Flujo completo de dos equipos y clasificación docente', async () => {
     // Comprobar que la portada y los recursos visuales se sirven sin exponer otros archivos.
     const home = await fetch(host + '/');
     assert.equal(home.status, 200);
-    assert.match(await home.text(), /CODEXIA \/\/ Cyber CTF/);
+    const markup = await home.text();
+    assert.match(markup, /CODEXIA \/\/ Cyber CTF/);
+    assert.match(markup, /youtube-nocookie\.com\/embed\/5z5KkYpFvO4/);
+    assert.match(markup, /MATRIZ DE/);
+    for (const color of ['AMARILLO', 'ROJO', 'VERDE', 'AZUL']) assert.match(markup, new RegExp(color));
+    assert.doesNotMatch(markup, /ultron-sd-dim/);
     const art = await fetch(host + '/public/ultron-sd-dim.webp');
-    assert.equal(art.status, 200);
-    assert.match(art.headers.get('content-type'), /image\/webp/);
+    assert.equal(art.status, 404);
     const style = await fetch(host + '/public/styles.css');
     assert.equal(style.status, 200);
     assert.match(await style.text(), /--red:#ff1638/);

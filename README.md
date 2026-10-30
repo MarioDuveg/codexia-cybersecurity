@@ -1,10 +1,10 @@
 # CODEXIA // Cyber CTF — Misión Código Fantasma
 
-Aplicación de taller para **quinto semestre de preparatoria**, con estética CODEXIA de ciencia ficción (negro, rojo, paneles HUD y arte del proyecto de referencia proporcionado). Incluye cinco retos sencillos de inspección de HTML, DOM, CSS, JavaScript y Base64, cronómetro individual por equipo y clasificación en tiempo real.
+Aplicación de taller para **quinto semestre de preparatoria**, con estética CODEXIA de ciencia ficción (negro, rojo, paneles HUD y video de introducción incrustado). Incluye cinco retos sencillos de inspección de HTML, DOM, CSS, JavaScript y Base64, cronómetro individual por equipo y clasificación en tiempo real.
 
 ## Inicio rápido
 
-Necesitas **Node.js 18 o superior**. No necesita paquetes externos ni conexión a Internet para ejecutarse. La tipografía Orbitron / Rajdhani se carga desde Google Fonts cuando hay conexión; sin Internet utiliza las fuentes de reserva del sistema. La imagen y los estilos principales se incluyen localmente.
+Necesitas **Node.js 18 o superior**. No necesita paquetes externos ni conexión a Internet para ejecutarse. La tipografía Orbitron / Rajdhani se carga desde Google Fonts cuando hay conexión; sin Internet utiliza las fuentes de reserva del sistema. Los estilos principales se incluyen localmente. El video incrustado de YouTube sí requiere Internet para reproducirse.
 
 ```bash
 npm start
@@ -47,7 +47,7 @@ Opcional: cambiar el puerto con la variable `PORT` (por defecto 3011). Para ejec
 - La columna izquierda muestra los 5 niveles: ✓ resuelto, → desbloqueado, ⌁ pendiente.
 - Los retos se desbloquean **uno tras otro**. Los estudiantes no pueden abrir retos futuros cambiando manualmente la URL.
 - En cada reto se introduce la contraseña hallada con herramientas de desarrollador y se verifica en el servidor.
-- Al resolver el quinto reto se guarda la hora final y el cronómetro se detiene definitivamente.
+- Al resolver el quinto reto se guarda la hora final y el cronómetro se detiene definitivamente. En pantalla aparece también la matriz de debilidades: Amarillo → Rojo, Rojo → Verde, Verde → Azul, Azul → Amarillo (cada color es vulnerable al siguiente).
 - En `/admin`, los equipos terminados se ordenan por **menor tiempo transcurrido**. La columna *Llegada* muestra además quién terminó cronológicamente primero, segundo, etc., aunque hayan comenzado en horarios distintos.
 - Los equipos en progreso siguen mostrando su tiempo actualizado.
 - El panel del docente se actualiza aproximadamente cada 2,3 segundos, permite **exportar CSV** y **reiniciar la competencia** con doble confirmación mediante la palabra `REINICIAR`.
@@ -73,8 +73,7 @@ cyberctf-prepa/
 │   ├── admin.html          # Interfaz del docente
 │   ├── admin.js
 │   ├── styles.css
-│   ├── challenge.css
-│   └── ultron-sd-dim.webp # Arte de portada suministrado en el ZIP de referencia
+│   └── challenge.css
 ├── data/                   # Se crea la base de equipos aquí
 ├── GUIA_DOCENTE.md         # Soluciones, sugerencias de taller
 └── README.md
@@ -86,6 +85,6 @@ En `app.js`, al principio se encuentran las contraseñas que valida el servidor 
 
 ## Apariencia CODEXIA
 
-Esta edición adapta visualmente el proyecto con el diseño del ZIP **codexia-challenge-preregistro-url-fix**: palabra de marca CODEXIA, tipografía de interfaz futurista, negro y rojo luminoso, ornamentos HUD, recortes angulares y arte de robot suministrado. La portada de alumnos, el panel de retos, las cinco pantallas y la zona `/admin` comparten la misma identidad. El arte de portada se sirve como archivo WebP desde `/public/`, sin depender del sitio de referencia.
+Esta edición adapta visualmente el proyecto con el diseño del ZIP **codexia-challenge-preregistro-url-fix**: palabra de marca CODEXIA, tipografía de interfaz futurista, negro y rojo luminoso, ornamentos HUD y recortes angulares. La portada de alumnos, el panel de retos, las cinco pantallas y la zona `/admin` comparten la misma identidad. La portada incluye el video de YouTube https://youtu.be/5z5KkYpFvO4, reproducible desde el panel de bienvenida (y con enlace directo si el navegador bloquea la incrustación). El video se detiene al empezar la misión. Se eliminó la imagen de Ultrón. El panel del docente conserva una decoración abstracta oscura y roja.
 
-La modificación es **estética**, no cambia ni reinicia la base de equipos existente: si reemplazas una instalación anterior, conserva su carpeta `data/` para mantener los registros de las competencias.
+La modificación cambia la portada y el contenido visible tras completar la misión; no cambia la validación, cronómetro ni ranking, y no reinicia la base de equipos existente: si reemplazas una instalación anterior, conserva su carpeta `data/` para mantener los registros de las competencias.
