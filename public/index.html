@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050506">
+  <meta name="description" content="CODEXIA // CTF. Cinco retos de ciberseguridad contra el reloj.">
+  <title>CODEXIA // Cyber CTF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/styles.css">
+  <script src="/public/main.js" defer></script>
+</head>
+<body class="app-screen">
+  <div class="ambient-grid" aria-hidden="true"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+  <header class="topbar">
+    <div class="brand" aria-label="Codexia Cyber CTF"><span class="brand-emblem" aria-hidden="true"><i></i></span><span class="brand-word">CODE<span>X</span>IA</span><span class="brand-divider" aria-hidden="true"></span><span class="brand-sub">CYBER / CTF</span></div>
+    <div class="top-right"><span class="connection"><i></i> SISTEMA EN LÍNEA</span><span class="round-marker">PROTOCOLO // 05 ETAPAS</span></div>
+  </header>
+
+  <main class="workspace" id="workspace" hidden>
+    <div class="mission-header">
+      <div><p class="micro"><span class="micro-bar"></span> CODEXIA // OPERACIÓN CÓDIGO FANTASMA</p><h1>ENTRA AL <em>SISTEMA.</em></h1><p class="subhead">Cinco desafíos de ciberseguridad. Una misión contrarreloj.</p></div>
+      <div class="timer-box"><span class="timer-label"><span class="pulse-dot"></span> TIEMPO DE MISIÓN // LIVE</span><div id="timer" class="timer" aria-live="off">00:00.00</div><span class="timer-meta" id="timerMeta">CRONÓMETRO ACTIVO</span></div>
+    </div>
+
+    <div class="play-grid">
+      <aside class="sidebar">
+        <div class="sidebar-head"><div class="side-mini">IDENTIFICADOR // EQUIPO</div><div id="teamName" class="team-name">—</div><div class="team-active"><span class="pulse-dot"></span><span id="teamStatus">MISIÓN EN CURSO</span></div></div>
+        <div class="sidebar-section"><span>PROGRESO / PROTOCOLO</span><strong id="progressText">00 / 05</strong></div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <nav class="level-list" id="levelList" aria-label="Retos de la misión"></nav>
+        <div class="sidebar-bottom"><span>◇</span><p><strong>INTEL // 001</strong><br>El navegador revela más de lo que se ve. Usa F12 para inspeccionar.</p></div>
+      </aside>
+
+      <section class="challenge-panel" aria-labelledby="challengePanelTitle">
+        <div class="challenge-toolbar"><div><span class="toolbar-kicker">CODEXIA / TERMINAL DE OPERACIONES</span><h2 id="challengePanelTitle">DESAFÍO ACTIVO</h2></div><div class="toolbar-right"><a id="openTab" href="#" target="_blank" rel="noopener">ABRIR EN PESTAÑA ↗</a><span class="toolbar-id" id="activeLevel">NIVEL 01 / 05</span></div></div>
+        <div class="iframe-wrap" id="iframeWrap"><iframe id="challengeFrame" title="Reto actual de ciberseguridad" referrerpolicy="same-origin"></iframe></div>
+        <div class="finish-card" id="finishCard" hidden>
+          <div class="finish-icon">✓</div><span class="finish-eyebrow">[ PROTOCOLO COMPLETADO // 05 / 05 ]</span><h2>ACCESO <span>CONCEDIDO.</span></h2><p>Superaron todas las barreras. Su tiempo quedó registrado oficialmente:</p><div id="finalTime" class="final-time">00:00.00</div><div class="place" id="finalPlace">RESULTADO REGISTRADO</div><p class="finish-foot">Consulta al docente para conocer tu posición en la clasificación general.</p><button class="button-outline" id="reviewBtn">REVISAR DESAFÍOS <span aria-hidden="true">›</span></button>
+        </div>
+        <footer class="panel-footer"><span>HERRAMIENTAS // F12 · INSPECCIONAR · CÓDIGO FUENTE</span><span>CODEXIA / CYBERSECURITY LAB</span></footer>
+      </section>
+    </div>
+  </main>
+
+  <div class="join-overlay" id="joinOverlay">
+    <section class="welcome-card" aria-labelledby="welcomeTitle">
+      <div class="welcome-content">
+        <div class="welcome-top"><span class="sys-tag"><i class="pulse-dot"></i> SISTEMA LISTO</span><span>CTF // 2026</span></div>
+        <p class="micro hero-rule"><span class="micro-bar"></span> CODEXIA / CYBERSECURITY CHALLENGE</p>
+        <h1 id="welcomeTitle">DESCIFRA<br><em>EL SISTEMA.</em></h1>
+        <p class="welcome-copy">Cinco vulnerabilidades simuladas. Cinco claves ocultas en el código. Un equipo, una misión y el cronómetro corriendo.</p>
+        <div class="welcome-facts"><span><b>05</b><small>RETOS</small></span><span><b>01</b><small>MISIÓN</small></span><span><b>∞</b><small>POSIBILIDADES</small></span></div>
+        <form id="joinForm" autocomplete="off"><label for="joinName">IDENTIFICADOR // NOMBRE DE EQUIPO</label><input id="joinName" name="name" placeholder="Ej. Byte Hunters" maxlength="32" minlength="2" required><button class="button-primary" type="submit" id="startBtn"><span>START // INICIAR MISIÓN</span><span>›</span></button><p id="joinError" class="join-error" role="alert"></p></form>
+        <div class="welcome-disclaimer">ADVERTENCIA // EL TIEMPO EMPIEZA AL PRESIONAR START Y NO SE PUEDE PAUSAR.</div>
+      </div>
+      <div class="welcome-art" aria-hidden="true"><div class="art-top">CODEXIA // CORE SYSTEM <span>ONLINE ●</span></div><div class="art-side">CÓDIGO &nbsp; · &nbsp; SEGURIDAD &nbsp; · &nbsp; CONTROL</div><div class="art-bottom"><span>PROTOCOLO FANTASMA</span><strong>READY <i>_</i></strong></div><div class="art-corner one"></div><div class="art-corner two"></div></div>
+    </section>
+  </div>
+</body>
+</html>

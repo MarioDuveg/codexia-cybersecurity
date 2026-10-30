@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050506">
+  <title>CODEXIA // Centro de control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/styles.css">
+  <script src="/public/admin.js" defer></script>
+</head>
+<body class="admin-screen">
+  <div class="ambient-grid" aria-hidden="true"></div><div class="scanlines" aria-hidden="true"></div>
+  <header class="topbar"><div class="brand"><span class="brand-emblem" aria-hidden="true"><i></i></span><span class="brand-word">CODE<span>X</span>IA</span><span class="brand-divider" aria-hidden="true"></span><span class="brand-sub">ADMIN / CTF</span></div><div class="top-right"><span class="connection"><i></i> MONITOREO ACTIVO</span><a href="/" class="top-link">VOLVER A LA MISIÓN ›</a></div></header>
+  <main class="admin-main" id="adminMain" hidden>
+    <div class="admin-heading"><div><p class="micro"><span class="micro-bar"></span> CODEXIA // ACCESO DOCENTE</p><h1>CENTRO DE <em>CONTROL.</em></h1><p class="subhead">Resultados en tiempo real. El menor tiempo obtiene la mejor posición.</p></div><div class="admin-actions"><button id="exportBtn" class="button-outline">↓ EXPORTAR CSV</button><button id="logoutBtn" class="button-quiet">CERRAR SESIÓN</button></div></div>
+    <div class="metric-grid"><div class="metric"><span>01 / EQUIPOS REGISTRADOS</span><strong id="totalTeams">0</strong><small>Participantes</small></div><div class="metric"><span>02 / EN COMPETENCIA</span><strong id="activeTeams">0</strong><small><i class="pulse-dot"></i> Cronómetros activos</small></div><div class="metric"><span>03 / FINALIZADOS</span><strong id="finishedTeams">0</strong><small>Misiones completadas</small></div><div class="metric"><span>04 / RÉCORD ACTUAL</span><strong id="bestTime">--:--.--</strong><small id="bestTeam">Sin resultados</small></div></div>
+    <section class="admin-table-section"><div class="table-heading"><div><span class="tiny-green">◇</span> CLASIFICACIÓN // GENERAL <p>Posición por menor tiempo · Llegada por orden cronológico de finalización</p></div><span class="auto-label"><i class="pulse-dot"></i> EN VIVO / AUTOREFRESH</span></div>
+      <div class="table-scroll"><table class="score-table"><thead><tr><th>POS.</th><th>EQUIPO</th><th>PROGRESO</th><th>TIEMPO</th><th>ESTADO</th><th>LLEGADA</th></tr></thead><tbody id="scoreRows"><tr><td colspan="6" class="empty-state">Esperando equipos…</td></tr></tbody></table></div>
+      <div class="table-foot"><span id="lastSync">Conectando…</span><button id="resetBtn" class="button-danger">REINICIAR COMPETENCIA</button></div>
+    </section>
+  </main>
+  <div class="join-overlay" id="adminGate"><section class="welcome-card admin-login" aria-labelledby="adminLoginTitle"><div class="welcome-content"><div class="welcome-top"><span class="sys-tag"><i class="pulse-dot"></i> DOCENTE / AUTH</span><span>ACCESO RESTRINGIDO</span></div><p class="micro hero-rule"><span class="micro-bar"></span> CODEXIA / COMMAND CENTER</p><h1 id="adminLoginTitle">ACCESO<br><em>DOCENTE.</em></h1><p class="welcome-copy">Introduce la contraseña del administrador para supervisar a todos los equipos, los cronómetros y el ranking.</p><form id="adminLogin"><label for="adminPassword">CONTRASEÑA // ADMIN</label><input id="adminPassword" type="password" required autocomplete="current-password" placeholder="Contraseña de administración"><button type="submit" class="button-primary" id="loginBtn"><span>ENTRAR AL CENTRO DE CONTROL</span><span>›</span></button><p class="join-error" id="loginError" role="alert"></p></form><div class="welcome-disclaimer">SI NO CONFIGURASTE ADMIN_PASSWORD, LA CLAVE TEMPORAL APARECE EN LA TERMINAL AL EJECUTAR NPM START.</div></div><div class="welcome-art" aria-hidden="true"><div class="art-top">CODEXIA // CONTROL NODE <span>SECURE ●</span></div><div class="art-bottom"><span>MONITOREO / RESTRINGIDO</span><strong>ADMIN <i>_</i></strong></div><div class="art-corner one"></div><div class="art-corner two"></div></div></section></div>
+</body>
+</html>
