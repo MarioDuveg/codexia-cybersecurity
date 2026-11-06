@@ -1,11 +1,11 @@
 # CODEXIA — Cyber CTF + Supabase (edición equipos 1–20)
 
-Proyecto del mini CTF de 5 retos integrado con **Supabase, proyecto `codexia-scores`**.
+Proyecto del mini CTF de 5 retos integrado con **Supabase, proyecto `codexia-scores`**, configurado como **Taller 1** (no como Batalla final).
 
 ## Antes de comenzar (indispensable)
 
 1. En Supabase (`codexia-scores`), abre **SQL Editor → New query**.
-2. Copia y ejecuta el archivo **`supabase/01_instalar_batalla_final.sql`**. Crea `scores` si no existe; si ya existe con las columnas de Taller 1, Taller 2, Taller 3, Taller 4 y Batalla final, la reutiliza. Crea también la función `registrar_batalla_final` y el mecanismo para que el score final **no pueda disminuir** con envíos posteriores.
+2. Copia y ejecuta el archivo **`supabase/01_instalar_taller_1.sql`**. Crea `scores` si no existe; si ya existe con las columnas de Taller 1, Taller 2, Taller 3, Taller 4 y Batalla final, la reutiliza. Crea también la función `registrar_taller` y el mecanismo para que el puntaje del **Taller 1 no pueda disminuir** con envíos posteriores. Si ya instalaste `registrar_taller` desde el SQL anterior, puedes omitir el paso.
 3. Inicia la app con **Node.js 18+**:
 
 ```bash
@@ -55,10 +55,10 @@ Por ejemplo, **5 retos completados casi de inmediato → 100**, mientras que **5
 
 - **Tabla:** `public.scores`.
 - **Identificador:** `equipo` (de 1 a 20 en esta actividad).
-- **Columna actualizada:** `batalla_final`. Las demás (`taller_1`, `taller_2`, `taller_3`, `taller_4`) se conservan intactas.
+- **Columna actualizada:** `taller_1`. Las demás (`taller_2`, `taller_3`, `taller_4`, `batalla_final`) se conservan intactas. **Los resultados antiguos en `batalla_final` no se transfieren automáticamente.**
 - **Total:** se calcula automáticamente con las cinco columnas en Supabase.
 - Se envía el score tras cada reto correctamente resuelto y al finalizar la misión. Si ocurre un fallo de red, se conserva en `data/equipos.json` y el servidor vuelve a intentar enviarlo, normalmente cada 15 segundos mientras está en funcionamiento.
-- La función SQL `registrar_batalla_final` realiza un `INSERT ... ON CONFLICT DO UPDATE` con `greatest(puntaje_actual, puntaje_nuevo)` **de forma atómica**. La regla también se aplica a cambios directos sobre `batalla_final` mediante un trigger, por ejemplo desde una página de captura.
+- La función SQL `registrar_taller` recibe `{p_equipo, p_taller: 1, p_puntaje}`. Realiza un `INSERT ... ON CONFLICT DO UPDATE` con `greatest(puntaje_actual, puntaje_nuevo)` **de forma atómica** y actualiza únicamente `taller_1`. Un trigger impide reducir `taller_1` por `UPDATE` directo.
 - **No necesitas una cuenta de administrador en Supabase ni iniciar sesión** para publicar o consultar. No obstante, **no hay protección antifraude**: con la clave publicable y las políticas de escritura anónima, cualquiera que conozca la API podría enviar valores o modificar otros puntajes. Para una competencia adversarial real se necesitarían controles de autenticación y autorización.
 
 ## Resultados sin login

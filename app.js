@@ -125,7 +125,9 @@ const MAX_MISSION_MS = 45 * 60 * 1000;
 // Clave PUBLICABLE, no es una clave secreta. También se puede sustituir con variables de entorno.
 const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://zgpfcmvjmjfaphtudmis.supabase.co').replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
 const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_0uQxgvjB7S7eCSqssUlPnA_Brhj-zx7';
-const SCORE_RPC = '/rest/v1/rpc/registrar_batalla_final';
+// El CTF de Ciberseguridad corresponde exclusivamente al Taller 1.
+const SCORE_RPC = '/rest/v1/rpc/registrar_taller';
+const TALLER_NUMBER = 1;
 
 
 // Claves de prácticas, inventadas; NUNCA utilizar credenciales reales.
@@ -235,7 +237,7 @@ async function syncTeamScore(t) {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify({ p_equipo: t.teamNumber, p_puntaje: score }),
+      body: JSON.stringify({ p_equipo: t.teamNumber, p_taller: TALLER_NUMBER, p_puntaje: score }),
       signal: AbortSignal.timeout(8000),
     });
     if (!response.ok) throw new Error('HTTP ' + response.status + ': ' + (await response.text()).slice(0, 240));

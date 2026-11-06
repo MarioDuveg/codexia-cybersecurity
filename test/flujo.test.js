@@ -10,15 +10,18 @@ const temporaryDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codexia-scores-test-
 process.env.CTF_DATA_DIR = temporaryDir;
 process.env.ADMIN_PASSWORD = 'ClaveDePrueba-2026';
 const remoteBest = new Map();
+// Notas existentes de Batalla final: la migración a Taller 1 NO debe tocarlas.
+const existingFinal = new Map([[3, 67], [4, 44]]);
 const calls = [];
 const mockSupabase = http.createServer(async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
-  if (req.url === '/rest/v1/rpc/registrar_batalla_final' && req.method === 'POST') {
+  if (req.url === '/rest/v1/rpc/registrar_taller' && req.method === 'POST') {
     assert.equal(req.headers.apikey, 'sb_publishable_test_only');
     let body = '';
     for await (const chunk of req) body += chunk;
-    const {p_equipo, p_puntaje} = JSON.parse(body);
-    calls.push({p_equipo, p_puntaje});
+    const {p_equipo, p_taller, p_puntaje} = JSON.parse(body);
+    calls.push({p_equipo, p_taller, p_puntaje});
+    assert.equal(p_taller, 1, "El juego no debe mandar puntos a Batalla final ni a otros talleres");
     if (!Number.isInteger(p_equipo) || p_equipo < 1 || p_equipo > 20 || !Number.isInteger(p_puntaje) || p_puntaje < 1 || p_puntaje > 100) {
       res.statusCode = 400;
       return res.end(JSON.stringify({message:'Rango inválido'}));
@@ -27,9 +30,10 @@ const mockSupabase = http.createServer(async (req, res) => {
     return res.end(JSON.stringify(remoteBest.get(p_equipo)));
   }
   if (req.url.startsWith('/rest/v1/scores?') && req.method === 'GET') {
-    const scores = [...remoteBest].map(([equipo, batalla_final]) => ({
-      equipo, taller_1: 0, taller_2: 0, taller_3: 0, taller_4: 0,
-      batalla_final, total: batalla_final,
+    const scores = [...remoteBest].map(([equipo, taller_1]) => ({
+      equipo, taller_1, taller_2: 0, taller_3: 0, taller_4: 0,
+      batalla_final: existingFinal.get(equipo) || 0,
+      total: taller_1 + (existingFinal.get(equipo) || 0),
     })).sort((a,b) => b.total-a.total || a.equipo-b.equipo);
     return res.end(JSON.stringify(scores));
   }
@@ -163,7 +167,11 @@ test('Equipo obligatorio, misión de 45 min, reintentos y mejor nota en Supabase
     const ranking = await c('/api/scores');
     assert.equal(ranking.status, 200);
     assert.deepEqual(ranking.data.scores.map(x=>x.equipo), [3,4,20]);
-    assert.equal(ranking.data.scores[0].batalla_final, 100);
+    assert.equal(ranking.data.scores[0].taller_1, 100);
+    assert.equal(ranking.data.scores[0].batalla_final, 67);
+    assert.equal(ranking.data.scores[0].total, 167);
+    assert.equal(ranking.data.scores[1].batalla_final, 44);
+    assert.deepEqual([...new Set(calls.map(call => call.p_taller))], [1]);
     assert.equal((await admin('/api/admin/teams')).status, 401);
     assert.equal((await admin('/api/admin/login', {password:'ClaveDePrueba-2026'})).status, 200);
     const adminResponse = await admin('/api/admin/teams');
