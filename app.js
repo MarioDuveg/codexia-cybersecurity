@@ -120,6 +120,13 @@ const ADMIN_GENERATED = !process.env.ADMIN_PASSWORD;
 const COOKIE_TEAM = 'ctf_equipo';
 const COOKIE_ADMIN = 'ctf_docente';
 const MAX_ANSWER_LENGTH = 90;
+const MAX_TEAM_NUMBER = 20;
+const MAX_MISSION_MS = 45 * 60 * 1000;
+// Clave PUBLICABLE, no es una clave secreta. También se puede sustituir con variables de entorno.
+const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://zgpfcmvjmjfaphtudmis.supabase.co').replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
+const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_0uQxgvjB7S7eCSqssUlPnA_Brhj-zx7';
+const SCORE_RPC = '/rest/v1/rpc/registrar_batalla_final';
+
 
 // Claves de prácticas, inventadas; NUNCA utilizar credenciales reales.
 const LEVELS = [
@@ -197,8 +204,76 @@ function requireAdmin(req, res, next) {
 function htmlEsc(value) {
   return String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
-function elapsed(t, now = Date.now()) { return (t.completedAt || now) - t.startedAt; }
-function nameKey(name) { return name.normalize('NFC').toLocaleLowerCase('es-MX'); }
+function endedAt(t) { return t.completedAt || t.expiredAt || null; }
+function elapsed(t, now = Date.now()) { return Math.max(0, Math.min(MAX_MISSION_MS, (endedAt(t) || now) - t.startedAt)); }
+function scoreFromProgress(solvedCount, ms) {
+  if (solvedCount <= 0) return 1;
+  // Cada reto completado se sitúa en una banda de 20 puntos; dentro de ella,
+  // el equipo obtiene más puntos cuanto menos tarda en resolver el último reto.
+  const speedBonus = Math.round(19 * (1 - Math.min(MAX_MISSION_MS, Math.max(0, ms)) / MAX_MISSION_MS));
+  return Math.max(1, Math.min(100, (solvedCount - 1) * 20 + 1 + speedBonus));
+}
+function scoreForTeam(t) {
+  const solvedCount = t.solved.length;
+  const moment = solvedCount ? t.solved[solvedCount - 1] : (endedAt(t) || Date.now());
+  return scoreFromProgress(solvedCount, moment - t.startedAt);
+}
+const syncInFlight = new Set();
+async function syncTeamScore(t) {
+  // No enviar una calificación de 1 punto en el instante del inicio; solo al
+  // resolver un reto o al finalizar el tiempo sin haber resuelto ninguno.
+  if (!t.solved.length && !endedAt(t)) return;
+  if (!Number.isInteger(t.teamNumber) || t.teamNumber < 1 || t.teamNumber > MAX_TEAM_NUMBER) return;
+  const score = scoreForTeam(t);
+  if ((t.syncedScore || 0) >= score || syncInFlight.has(t.id)) return;
+  syncInFlight.add(t.id);
+  try {
+    const response = await fetch(SUPABASE_URL + SCORE_RPC, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ p_equipo: t.teamNumber, p_puntaje: score }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) throw new Error('HTTP ' + response.status + ': ' + (await response.text()).slice(0, 240));
+    t.syncedScore = Math.max(t.syncedScore || 0, score);
+    t.syncError = null;
+    save();
+  } catch (error) {
+    t.syncError = String(error.message || error);
+    console.error('[Supabase] No se pudo registrar Equipo ' + t.teamNumber + ' (' + score + '):', t.syncError);
+    // La puntuación permanece en data/equipos.json y se reintenta.
+  } finally { syncInFlight.delete(t.id); }
+}
+function expireIfNeeded(t, now = Date.now()) {
+  if (endedAt(t) || now - t.startedAt < MAX_MISSION_MS) return false;
+  t.expiredAt = t.startedAt + MAX_MISSION_MS;
+  save();
+  void syncTeamScore(t);
+  return true;
+}
+function createAttempt(teamNumber, res, req) {
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const t = {
+    id: crypto.randomUUID(),
+    name: 'Equipo ' + teamNumber,
+    teamNumber,
+    tokenHash: sha256(rawToken),
+    startedAt: Date.now(),
+    completedAt: null,
+    expiredAt: null,
+    currentLevel: 1,
+    solved: [],
+    syncedScore: 0,
+  };
+  db.teams.push(t);
+  save();
+  setCookie(res, COOKIE_TEAM, rawToken, 60 * 60 * 24 * 30, req);
+  return t;
+}
 const wrongAttempts = new Map();
 const adminAttempts = new Map();
 function isRateLimited(map, key, max, windowMs) {
@@ -222,18 +297,28 @@ app.get('/admin', (req, res) => res.sendFile(path.join(ROOT, 'public', 'admin.ht
 
 app.get('/api/state', (req, res) => {
   const team = teamFromReq(req);
-  if (!team) return res.json({ started: false, serverNow: Date.now() });
+  if (!team) return res.json({ started: false, serverNow: Date.now(), maxDurationMs: MAX_MISSION_MS });
+  expireIfNeeded(team);
+  if ((team.syncedScore || 0) < scoreForTeam(team)) void syncTeamScore(team);
   const finishers = db.teams.filter(t => t.completedAt).sort((a, b) => elapsed(a) - elapsed(b) || a.completedAt - b.completedAt);
   const rank = team.completedAt ? finishers.findIndex(t => t.id === team.id) + 1 : null;
   res.json({
     started: true,
     serverNow: Date.now(),
     name: team.name,
+    teamNumber: team.teamNumber,
     startedAt: team.startedAt,
     completedAt: team.completedAt,
+    expiredAt: team.expiredAt || null,
+    ended: Boolean(endedAt(team)),
     elapsedMs: elapsed(team),
+    remainingMs: MAX_MISSION_MS - elapsed(team),
+    maxDurationMs: MAX_MISSION_MS,
     currentLevel: team.currentLevel,
     solved: team.solved,
+    score: scoreForTeam(team),
+    syncedScore: team.syncedScore || 0,
+    syncError: team.syncError || null,
     rank,
   });
 });
@@ -241,33 +326,28 @@ app.get('/api/state', (req, res) => {
 app.post('/api/start', (req, res) => {
   const existing = teamFromReq(req);
   if (existing) return res.json({ ok: true, alreadyStarted: true });
-  const name = typeof req.body?.name === 'string' ? req.body.name.replace(/\s+/g, ' ').trim().normalize('NFC') : '';
-  if (name.length < 2 || name.length > 32 || !/^[\p{L}\p{N} ._#-]+$/u.test(name)) {
-    return res.status(400).json({ error: 'Usa un nombre de 2 a 32 caracteres: letras, números, espacios, punto, guion o #.' });
+  // Number('') o Number(null) daría cero: la selección es obligatoria y explícita.
+  const raw = req.body?.teamNumber;
+  const number = typeof raw === 'number' ? raw : typeof raw === 'string' && /^\d{1,2}$/.test(raw) ? Number(raw) : NaN;
+  if (!Number.isInteger(number) || number < 1 || number > MAX_TEAM_NUMBER) {
+    return res.status(400).json({ error: 'Selecciona un número de equipo del 1 al 20 para iniciar.' });
   }
-  if (db.teams.some(t => nameKey(t.name) === nameKey(name))) {
-    return res.status(409).json({ error: 'Ese nombre ya está registrado. Elige otro para tu equipo.' });
-  }
-  const rawToken = crypto.randomBytes(32).toString('hex');
-  const team = {
-    id: crypto.randomUUID(),
-    name,
-    tokenHash: sha256(rawToken),
-    startedAt: Date.now(),
-    completedAt: null,
-    currentLevel: 1,
-    solved: [],
-  };
-  db.teams.push(team);
-  save();
-  setCookie(res, COOKIE_TEAM, rawToken, 60 * 60 * 24 * 30, req);
+  createAttempt(number, res, req);
+  res.status(201).json({ ok: true });
+});
+
+app.post('/api/retry', requireApiTeam, (req, res) => {
+  if (!endedAt(req.team)) return res.status(409).json({ error: 'Solo se puede repetir una misión terminada o vencida.' });
+  createAttempt(req.team.teamNumber, res, req);
   res.status(201).json({ ok: true });
 });
 
 app.post('/api/answer', requireApiTeam, (req, res) => {
   const { team } = req;
+  expireIfNeeded(team);
   const level = Number(req.body?.level);
   const answer = req.body?.answer;
+  if (team.expiredAt) return res.status(409).json({ error: 'Se agotaron los 45 minutos de la misión.' });
   if (team.completedAt) return res.status(409).json({ error: 'Esta misión ya fue completada.' });
   if (!Number.isInteger(level) || level !== team.currentLevel) {
     return res.status(409).json({ error: 'Este reto no es el que tienes activo.' });
@@ -288,7 +368,8 @@ app.post('/api/answer', requireApiTeam, (req, res) => {
   if (team.currentLevel === 6) team.completedAt = solvedAt;
   wrongAttempts.delete(attemptsKey);
   save();
-  res.json({ ok: true, completed: Boolean(team.completedAt), nextLevel: team.completedAt ? null : team.currentLevel });
+  void syncTeamScore(team);
+  res.json({ ok: true, completed: Boolean(team.completedAt), nextLevel: team.completedAt ? null : team.currentLevel, score: scoreForTeam(team) });
 });
 
 function levelExtra(level) {
@@ -402,11 +483,28 @@ app.get('/reto/:level', (req, res) => {
   if (!team) return res.status(401).send('Primero inicia tu misión desde la página principal.');
   const level = Number(req.params.level);
   if (!Number.isInteger(level) || level < 1 || level > 5) return res.status(404).send('Reto inexistente.');
+  expireIfNeeded(team);
+  if (team.expiredAt) return res.status(410).send('La misión llegó al límite de 45 minutos. Puedes volver a intentar desde la portada.');
   if (level > team.currentLevel) return res.status(403).send('Este reto sigue bloqueado. Supera el anterior.');
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.send(challengeDocument(level));
 });
+
+app.get('/api/scores', (req, res) => {
+  (async () => {
+    try {
+      const url = SUPABASE_URL + '/rest/v1/scores?select=equipo,taller_1,taller_2,taller_3,taller_4,batalla_final,total&order=total.desc,equipo.asc';
+      const response = await fetch(url, {
+        headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Accept: 'application/json' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      res.json({ scores: await response.json() });
+    } catch (err) { res.status(502).json({ error: 'No se pudieron consultar los resultados de Supabase.' }); }
+  })();
+});
+app.get('/resultados', (req, res) => res.sendFile(path.join(ROOT, 'public', 'resultados.html')));
 
 app.get('/api/admin/session', (req, res) => res.json({ authenticated: adminFromReq(req) }));
 app.post('/api/admin/login', (req, res) => {
@@ -430,6 +528,7 @@ app.post('/api/admin/logout', requireAdmin, (req, res) => {
 });
 app.get('/api/admin/teams', requireAdmin, (req, res) => {
   const now = Date.now();
+  for (const t of db.teams) expireIfNeeded(t, now);
   const finished = db.teams.filter(t => t.completedAt);
   const byTime = [...finished].sort((a, b) => elapsed(a) - elapsed(b) || a.completedAt - b.completedAt);
   const byArrival = [...finished].sort((a, b) => a.completedAt - b.completedAt || elapsed(a) - elapsed(b));
@@ -443,6 +542,8 @@ app.get('/api/admin/teams', requireAdmin, (req, res) => {
     elapsedMs: elapsed(t, now),
     solvedCount: t.solved.length,
     currentLevel: t.currentLevel,
+    expiredAt: t.expiredAt || null,
+    score: scoreForTeam(t),
     rank: times.get(t.id) || null,
     arrival: arrivals.get(t.id) || null,
   })).sort((a, b) => {
@@ -462,6 +563,16 @@ app.post('/api/admin/reset', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+
+// Revisa vencimientos aun cuando un equipo deje de interactuar; reintenta
+// publicar resultados guardados si Supabase estuvo momentáneamente inaccesible.
+const maintenance = setInterval(() => {
+  for (const team of db.teams) {
+    expireIfNeeded(team);
+    if ((team.solved.length || endedAt(team)) && (team.syncedScore || 0) < scoreForTeam(team)) void syncTeamScore(team);
+  }
+}, 15_000);
+maintenance.unref();
 
 if (require.main === module) {
   app.listen(PORT, '0.0.0.0', () => {

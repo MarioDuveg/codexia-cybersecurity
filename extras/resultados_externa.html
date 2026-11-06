@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Codexia | Resultados</title>
+<style>
+  :root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0e1217;color:#f1f6f8}
+  *{box-sizing:border-box}body{margin:0;padding:36px 18px}main{max-width:1100px;margin:auto}
+  h1{font-size:clamp(28px,4vw,43px);margin:0}p{color:#a6b2be}
+  .head{display:flex;gap:15px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:25px}
+  button{border:1px solid #455360;background:#28353e;color:#fff;border-radius:10px;padding:11px 15px;cursor:pointer}
+  .table-wrap{overflow:auto;border:1px solid #34414b;border-radius:14px;background:#1b232b}
+  table{border-collapse:collapse;width:100%;white-space:nowrap;text-align:right}th,td{padding:16px 14px;border-bottom:1px solid #35424d;font-variant-numeric:tabular-nums}
+  th{color:#b5c1cc;font-size:13px}th:first-child,td:first-child{text-align:center}th:nth-child(2),td:nth-child(2){text-align:left}
+  td{font-size:15px}tr:first-child td{font-weight:750}.pos{font-size:18px;color:#55deaa}.total{color:#55deaa;font-weight:800}
+  #estado{min-height:25px}.error{color:#ffb1b1}
+</style>
+</head>
+<body><main>
+  <div class="head"><div><h1>Codexia · Clasificación</h1><p>Resultados por talleres y Batalla final. Se actualizan cada 15 segundos.</p></div><button id="actualizar">Actualizar ahora</button></div>
+  <p id="estado" role="status" aria-live="polite">Consultando puntuaciones…</p>
+  <div class="table-wrap"><table><thead><tr><th>Posición</th><th>Equipo</th><th>Taller 1</th><th>Taller 2</th><th>Taller 3</th><th>Taller 4</th><th>Batalla final</th><th>Total</th></tr></thead><tbody id="filas"></tbody></table></div>
+</main>
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+  // Configurado para CODEXIA con su clave PUBLICABLE (no secreta).
+  const SUPABASE_URL = 'https://zgpfcmvjmjfaphtudmis.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_0uQxgvjB7S7eCSqssUlPnA_Brhj-zx7';
+  const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  const $ = (id) => document.getElementById(id);
+  const formato = (n) => Number(n).toLocaleString('es-MX',{maximumFractionDigits:2});
+  let consultando=false;
+  async function cargar(){
+    if(consultando)return;
+    if(SUPABASE_URL.includes('TU-PROYECTO')||SUPABASE_PUBLISHABLE_KEY.includes('TU_CLAVE')){
+      $('estado').textContent='Configura la URL y la clave publicable de Supabase en el HTML.';
+      $('estado').className='error';return;
+    }
+    consultando=true;
+    try{
+      let registros=[]; const paso=1000;
+      for(let inicio=0;;inicio+=paso){
+        const {data,error}=await db.from('scores')
+          .select('equipo,taller_1,taller_2,taller_3,taller_4,batalla_final,total')
+          .order('total',{ascending:false}).order('equipo',{ascending:true})
+          .range(inicio,inicio+paso-1);
+        if(error)throw error;
+        registros.push(...data);
+        if(data.length<paso)break;
+      }
+      const tbody=$('filas');tbody.replaceChildren();
+      for(const [indice,item] of registros.entries()){
+        const tr=document.createElement('tr');
+        const valores=[indice+1,`Equipo ${item.equipo}`,item.taller_1,item.taller_2,item.taller_3,item.taller_4,item.batalla_final,item.total];
+        valores.forEach((valor,i)=>{
+          const td=document.createElement('td');td.textContent=i<2?valor:formato(valor);
+          if(i===0)td.className='pos';if(i===7)td.className='total';tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      }
+      if(!registros.length)tbody.innerHTML='<tr><td colspan="8">Todavía no hay puntuaciones registradas.</td></tr>';
+      $('estado').className='';$('estado').textContent=`${registros.length} equipos · Última consulta: ${new Date().toLocaleTimeString('es-MX')}`;
+    }catch(error){$('estado').className='error';$('estado').textContent=`No se pudieron cargar los resultados: ${error.message}`;}
+    finally{consultando=false;}
+  }
+  $('actualizar').addEventListener('click',cargar);
+  cargar(); setInterval(cargar,15000);
+</script></body></html>

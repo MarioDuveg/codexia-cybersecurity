@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Codexia | Captura de puntuaciones</title>
+  <style>
+    :root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#101317;color:#f2f5f8}
+    *{box-sizing:border-box} body{margin:0;padding:32px 18px}main{max-width:980px;margin:auto}
+    h1{margin-bottom:5px;font-size:clamp(26px,4vw,36px)}p{color:#a6b0bb;margin-top:0}
+    .card{background:#1b2229;border:1px solid #34404a;border-radius:14px;padding:22px;margin:24px 0}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:14px}
+    label{display:block;font-size:13px;color:#b9c4cf;font-weight:600}
+    input{display:block;margin-top:8px;width:100%;border:1px solid #4a5865;background:#12171c;color:#fff;border-radius:9px;padding:12px;font-size:16px}
+    button{border:0;border-radius:9px;padding:12px 18px;background:#37ca89;color:#052d1a;font-weight:750;cursor:pointer}
+    button:disabled{opacity:.6;cursor:wait}.secondary{background:#333f49;color:#fff}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;align-items:center}
+    .table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;text-align:right;white-space:nowrap}
+    th,td{padding:11px 9px;border-bottom:1px solid #34404a;font-variant-numeric:tabular-nums}th:first-child,td:first-child{text-align:left}
+    th{color:#afb9c3;font-size:13px}td{font-size:14px}table button{padding:7px 11px;font-size:12px}
+    #estado{color:#bdebd5;min-height:24px}.error{color:#ffb4b4!important}
+  </style>
+</head>
+<body><main>
+  <h1>Codexia · Captura de scores</h1>
+  <p>Agrega equipos y captura puntuaciones de los talleres. La calificación de Batalla final nunca disminuye. No requiere iniciar sesión.</p>
+  <section class="card">
+    <form id="formulario">
+      <div class="grid">
+        <label>Número de equipo<input id="equipo" type="number" min="1" step="1" required placeholder="1"></label>
+        <label>Taller 1<input id="taller_1" type="number" min="0" step="0.01" required value="0"></label>
+        <label>Taller 2<input id="taller_2" type="number" min="0" step="0.01" required value="0"></label>
+        <label>Taller 3<input id="taller_3" type="number" min="0" step="0.01" required value="0"></label>
+        <label>Taller 4<input id="taller_4" type="number" min="0" step="0.01" required value="0"></label>
+        <label>Batalla final<input id="batalla_final" type="number" min="0" step="0.01" required value="0"></label>
+      </div>
+      <div class="actions">
+        <button id="guardar" type="submit">Guardar puntuaciones</button>
+        <button class="secondary" id="limpiar" type="button">Nuevo equipo</button>
+        <span id="estado" role="status" aria-live="polite"></span>
+      </div>
+    </form>
+  </section>
+  <section class="card">
+    <div class="actions" style="margin-top:0;justify-content:space-between"><h2>Equipos registrados</h2><button class="secondary" id="actualizar" type="button">Actualizar lista</button></div>
+    <div class="table-wrap"><table><thead><tr><th>Equipo</th><th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>Final</th><th>Total</th><th></th></tr></thead><tbody id="filas"><tr><td colspan="8">Cargando…</td></tr></tbody></table></div>
+  </section>
+</main>
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+  // Configurado para CODEXIA con su clave PUBLICABLE (no secreta).
+  const SUPABASE_URL = 'https://zgpfcmvjmjfaphtudmis.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_0uQxgvjB7S7eCSqssUlPnA_Brhj-zx7';
+  const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  const campos = ['taller_1','taller_2','taller_3','taller_4','batalla_final'];
+  const $ = (id) => document.getElementById(id);
+  const formato = (n) => Number(n).toLocaleString('es-MX', {maximumFractionDigits:2});
+  const mostrar = (msj,error=false) => { $('estado').textContent=msj; $('estado').className=error?'error':''; };
+  let equipos = [];
+  function configurado(){
+    if(SUPABASE_URL.includes('TU-PROYECTO')||SUPABASE_PUBLISHABLE_KEY.includes('TU_CLAVE')){
+      mostrar('Configura la URL y la clave publicable de Supabase en el HTML.',true);return false;
+    }
+    return true;
+  }
+  async function cargar(){
+    if(!configurado())return;
+    let registros=[]; const paso=1000;
+    try{
+      for(let inicio=0;;inicio+=paso){
+        const {data,error}=await db.from('scores').select('equipo,taller_1,taller_2,taller_3,taller_4,batalla_final,total').order('equipo').range(inicio,inicio+paso-1);
+        if(error)throw error;
+        registros.push(...data);
+        if(data.length<paso)break;
+      }
+      equipos=registros;
+      $('filas').replaceChildren();
+      if(!equipos.length){ $('filas').innerHTML='<tr><td colspan="8">Todavía no hay equipos.</td></tr>'; return; }
+      for(const item of equipos){
+        const fila=document.createElement('tr');
+        const valores=[`Equipo ${item.equipo}`,...campos.map(c=>formato(item[c])),formato(item.total)];
+        valores.forEach(valor=>{const celda=document.createElement('td');celda.textContent=valor;fila.appendChild(celda)});
+        const accion=document.createElement('td');const boton=document.createElement('button');boton.textContent='Editar';boton.type='button';
+        boton.addEventListener('click',()=>{ $('equipo').value=item.equipo;campos.forEach(c=>$(c).value=item[c]);window.scrollTo({top:0,behavior:'smooth'});$('equipo').focus(); });
+        accion.appendChild(boton);fila.appendChild(accion);$('filas').appendChild(fila);
+      }
+    }catch(error){mostrar(`No se pudo consultar: ${error.message}`,true);}
+  }
+  $('formulario').addEventListener('submit', async (evento)=>{
+    evento.preventDefault();if(!configurado())return;
+    const equipo=Number($('equipo').value);
+    const scores=Object.fromEntries(campos.map(c=>[c,Number($(c).value)]));
+    if(!Number.isSafeInteger(equipo)||equipo<=0||Object.values(scores).some(v=>!Number.isFinite(v)||v<0)){
+      mostrar('Revisa el número de equipo y los scores.',true);return;
+    }
+    $('guardar').disabled=true;mostrar('Guardando…');
+    try{
+      const {error}=await db.from('scores').upsert({equipo,...scores},{onConflict:'equipo'});
+      if(error)throw error;
+      mostrar(`Puntuaciones del Equipo ${equipo} guardadas.`);
+      await cargar();
+    }catch(error){mostrar(`Error al guardar: ${error.message}`,true);}
+    finally{$('guardar').disabled=false;}
+  });
+  $('limpiar').addEventListener('click',()=>{$('formulario').reset();$('equipo').focus();mostrar('');});
+  $('actualizar').addEventListener('click',cargar);
+  cargar();
+</script></body></html>

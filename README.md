@@ -1,90 +1,97 @@
-# CODEXIA // Cyber CTF — Misión Código Fantasma
+# CODEXIA — Cyber CTF + Supabase (edición equipos 1–20)
 
-Aplicación de taller para **quinto semestre de preparatoria**, con estética CODEXIA de ciencia ficción (negro, rojo, paneles HUD y video de introducción incrustado). Incluye cinco retos sencillos de inspección de HTML, DOM, CSS, JavaScript y Base64, cronómetro individual por equipo y clasificación en tiempo real.
+Proyecto del mini CTF de 5 retos integrado con **Supabase, proyecto `codexia-scores`**.
 
-## Inicio rápido
+## Antes de comenzar (indispensable)
 
-Necesitas **Node.js 18 o superior**. No necesita paquetes externos ni conexión a Internet para ejecutarse. La tipografía Orbitron / Rajdhani se carga desde Google Fonts cuando hay conexión; sin Internet utiliza las fuentes de reserva del sistema. Los estilos principales se incluyen localmente. El video incrustado de YouTube sí requiere Internet para reproducirse.
+1. En Supabase (`codexia-scores`), abre **SQL Editor → New query**.
+2. Copia y ejecuta el archivo **`supabase/01_instalar_batalla_final.sql`**. Crea `scores` si no existe; si ya existe con las columnas de Taller 1, Taller 2, Taller 3, Taller 4 y Batalla final, la reutiliza. Crea también la función `registrar_batalla_final` y el mecanismo para que el score final **no pueda disminuir** con envíos posteriores.
+3. Inicia la app con **Node.js 18+**:
 
 ```bash
 npm start
 ```
 
-Visita:
-- **Alumnos:** http://localhost:3011
-- **Docente:** http://localhost:3011/admin
+4. Abre `http://localhost:3011`. Para ver la clasificación en la misma app: `http://localhost:3011/resultados`.
+5. Si necesitas ver los resultados en **otra página web independiente**, publica `extras/resultados_externa.html`. Este archivo ya viene configurado con la URL y clave **publicable** facilitadas para el proyecto.
 
-En la consola de `npm start` se muestra una **contraseña temporal del docente** (generada aleatoriamente cada vez que arrancas el servidor). Para usar siempre la misma, configúrala antes de iniciar:
+**IMPORTANTE:** El URL que compartiste termina en `/rest/v1/`; para configurar `SUPABASE_URL` internamente se utiliza solo el origen `https://zgpfcmvjmjfaphtudmis.supabase.co`. El servidor añade la ruta `/rest/v1/` por su cuenta. No uses claves secretas en HTML.
 
-**macOS / Linux:**
+## Selección de equipos
 
-```bash
-ADMIN_PASSWORD='TuClaveDocenteSegura_2026!' npm start
-```
+- La portada muestra **ningún equipo seleccionado** de inicio: el campo está vacío y START deshabilitado.
+- Introduce un entero entre **1 y 20**, o utiliza los botones **+** y **−** (desde vacío: + empieza en 1, − en 20).
+- La validación también se hace en el servidor: se rechazan valores vacíos, negativos, fraccionarios o superiores a 20.
+- Cuando se inicia una misión se asocia una cookie segura de sesión a ese intento del equipo; al recargar la página se reanuda el mismo intento.
+- Se pueden realizar varios intentos desde el botón **REINTENTAR CON ESTE EQUIPO** una vez completada o vencida la misión. Distintos navegadores también pueden usar el mismo número de equipo. El mejor score prevalece en Supabase.
 
-**PowerShell (Windows):**
+## Cronómetro de 45 minutos
 
-```powershell
-$env:ADMIN_PASSWORD='TuClaveDocenteSegura_2026!'
-npm start
-```
+El reloj comienza al aceptar `/api/start`, usando el tiempo **del servidor Node**, y no se puede pausar. El límite son **45:00 minutos**, tras los cuales ya no se aceptan respuestas y la misión finaliza aunque falten retos. El reloj se detiene al completar el quinto reto o al agotarse el tiempo. El servidor revisa vencimientos incluso sin actividad periódicamente.
 
-Opcional: cambiar el puerto con la variable `PORT` (por defecto 3011). Para ejecutar las pruebas automáticas del flujo completo, usa `npm test`.
+## Cálculo exacto de la calificación
 
-## Compartir con los estudiantes en el aula
-
-1. Conecta el equipo del docente y los estudiantes **a la misma red Wi-Fi o LAN**.
-2. Ejecuta `npm start` en la computadora del docente.
-3. La terminal te mostrará una dirección de **red local**, por ejemplo `http://192.168.1.25:3011`. Comparte esa dirección (sin `/admin`) con los estudiantes. **No uses `localhost` en sus dispositivos**: apuntaría a sus propios equipos.
-4. Abre `http://localhost:3011/admin` en tu computadora e inicia sesión con la contraseña docente.
-5. Si no carga desde otro equipo, revisa que el firewall permita conexiones entrantes de Node.js al puerto 3011 y que la red no tenga aislamiento entre clientes ("AP isolation").
-
-> No es necesario publicar la aplicación en internet. Está diseñada para un laboratorio controlado en red local. Si se publica fuera del aula, utiliza HTTPS, controles de acceso apropiados y un almacenamiento profesional.
-
-## Funcionamiento
-
-- Cada equipo escribe su nombre y pulsa **INICIAR MISIÓN**. El tiempo empieza en el servidor en ese instante.
-- La columna izquierda muestra los 5 niveles: ✓ resuelto, → desbloqueado, ⌁ pendiente.
-- Los retos se desbloquean **uno tras otro**. Los estudiantes no pueden abrir retos futuros cambiando manualmente la URL.
-- En cada reto se introduce la contraseña hallada con herramientas de desarrollador y se verifica en el servidor.
-- Al resolver el quinto reto se guarda la hora final y el cronómetro se detiene definitivamente. En pantalla aparece también la matriz de debilidades: Amarillo → Rojo, Rojo → Verde, Verde → Azul, Azul → Amarillo (cada color es vulnerable al siguiente).
-- En `/admin`, los equipos terminados se ordenan por **menor tiempo transcurrido**. La columna *Llegada* muestra además quién terminó cronológicamente primero, segundo, etc., aunque hayan comenzado en horarios distintos.
-- Los equipos en progreso siguen mostrando su tiempo actualizado.
-- El panel del docente se actualiza aproximadamente cada 2,3 segundos, permite **exportar CSV** y **reiniciar la competencia** con doble confirmación mediante la palabra `REINICIAR`.
-
-## Persistencia y comportamiento importante
-
-Los datos se guardan automáticamente en `data/equipos.json`. Los estudiantes se identifican con una cookie `HttpOnly` propia del navegador, por lo que **deben continuar usando el mismo dispositivo y navegador**. El servidor puede reiniciarse y los registros se mantienen. Si un equipo borra sus cookies, pierde la posibilidad de recuperar su sesión en esta versión; el docente puede reiniciar la competencia si fuese necesario.
-
-La carpeta `data` **nunca se expone** por las rutas públicas del servidor. No compartas esa carpeta ni el archivo `GUIA_DOCENTE.md` con los estudiantes antes de la actividad.
-
-Las contraseñas son **ficticias y deliberadamente visibles en el código del reto activo**. Esa es precisamente la lección: ocultar, poner en CSS, fragmentar o codificar datos del lado cliente no los protege. El cronómetro, el progreso y el ranking se computan del lado del servidor; no se promete protección ante ataques avanzados ni trampas entre equipos.
-
-## Estructura
+Son **5 retos**. La fórmula asigna un intervalo de 20 puntos según los retos resueltos; dentro de ese intervalo, terminar más rápido suma puntos. Se utiliza el tiempo en que se resolvió **el último reto correcto** (no el tiempo que el usuario deja la página abierta).
 
 ```text
-cyberctf-prepa/
-├── app.js                  # Servidor Node.js, tiempo, API, niveles, admin
-├── package.json
-├── test/                   # Prueba automática de flujo y ranking
-├── public/
-│   ├── index.html          # Interfaz del alumno
-│   ├── main.js
-│   ├── admin.html          # Interfaz del docente
-│   ├── admin.js
-│   ├── styles.css
-│   └── challenge.css
-├── data/                   # Se crea la base de equipos aquí
-├── GUIA_DOCENTE.md         # Soluciones, sugerencias de taller
-└── README.md
+Sin retos:                1 punto
+Con n retos (1 a 5):     (n - 1) × 20 + 1 + redondear(19 × (1 - t / 2700000))
+                         t = milisegundos transcurridos hasta el último reto
+                         t se limita a [0, 2700000]  (45 minutos)
 ```
 
-## Modificación de contraseñas
+| Retos correctos | Puntuación posible |
+|---|---:|
+| 0 | 1 |
+| 1 | 1–20 |
+| 2 | 21–40 |
+| 3 | 41–60 |
+| 4 | 61–80 |
+| 5 | 81–100 |
 
-En `app.js`, al principio se encuentran las contraseñas que valida el servidor (`LEVELS`). Para cambiar alguna debes modificar **también** su pista visible en la función `levelExtra()` (comentario HTML, nodo oculto, CSS, fragmentos de JavaScript o cadena Base64). En el nivel 5, codifica la contraseña con `Buffer.from('NuevaContraseña').toString('base64')` antes de reemplazar el token.
+Por ejemplo, **5 retos completados casi de inmediato → 100**, mientras que **5 retos completados a los 44 minutos 59 segundos → 81**. Un equipo con más retos resueltos siempre supera en puntuación a uno con menos retos, independientemente del tiempo.
 
-## Apariencia CODEXIA
+## Envío a Supabase y mejor intento
 
-Esta edición adapta visualmente el proyecto con el diseño del ZIP **codexia-challenge-preregistro-url-fix**: palabra de marca CODEXIA, tipografía de interfaz futurista, negro y rojo luminoso, ornamentos HUD y recortes angulares. La portada de alumnos, el panel de retos, las cinco pantallas y la zona `/admin` comparten la misma identidad. La portada incluye el video de YouTube https://youtu.be/5z5KkYpFvO4, reproducible desde el panel de bienvenida (y con enlace directo si el navegador bloquea la incrustación). El video se detiene al empezar la misión. Se eliminó la imagen de Ultrón. El panel del docente conserva una decoración abstracta oscura y roja.
+- **Tabla:** `public.scores`.
+- **Identificador:** `equipo` (de 1 a 20 en esta actividad).
+- **Columna actualizada:** `batalla_final`. Las demás (`taller_1`, `taller_2`, `taller_3`, `taller_4`) se conservan intactas.
+- **Total:** se calcula automáticamente con las cinco columnas en Supabase.
+- Se envía el score tras cada reto correctamente resuelto y al finalizar la misión. Si ocurre un fallo de red, se conserva en `data/equipos.json` y el servidor vuelve a intentar enviarlo, normalmente cada 15 segundos mientras está en funcionamiento.
+- La función SQL `registrar_batalla_final` realiza un `INSERT ... ON CONFLICT DO UPDATE` con `greatest(puntaje_actual, puntaje_nuevo)` **de forma atómica**. La regla también se aplica a cambios directos sobre `batalla_final` mediante un trigger, por ejemplo desde una página de captura.
+- **No necesitas una cuenta de administrador en Supabase ni iniciar sesión** para publicar o consultar. No obstante, **no hay protección antifraude**: con la clave publicable y las políticas de escritura anónima, cualquiera que conozca la API podría enviar valores o modificar otros puntajes. Para una competencia adversarial real se necesitarían controles de autenticación y autorización.
 
-La modificación cambia la portada y el contenido visible tras completar la misión; no cambia la validación, cronómetro ni ranking, y no reinicia la base de equipos existente: si reemplazas una instalación anterior, conserva su carpeta `data/` para mantener los registros de las competencias.
+## Resultados sin login
+
+- Ruta del servidor: `http://localhost:3011/resultados` (consulta `/api/scores`, refresca cada 10 segundos).
+- HTML independiente para subir a otro dominio: `extras/resultados_externa.html` (consulta Supabase directamente, refresca cada 15 segundos).
+- HTML opcional para editar talleres desde otra web: `extras/captura_talleres_externa.html` (también preconfigurado; no lo publiques si no quieres permitir modificaciones públicas).
+
+## Configuración opcional
+
+La URL y clave publicable de Supabase están incorporadas en `app.js` para que la conexión sea inmediata una vez instalada la función SQL. Pueden reemplazarse con variables de entorno sin tocar el código:
+
+```bash
+SUPABASE_URL='https://zgpfcmvjmjfaphtudmis.supabase.co' \
+SUPABASE_PUBLISHABLE_KEY='sb_publishable_TU_CLAVE' npm start
+```
+
+El puerto predeterminado es `3011`, configurable con `PORT`. En red local visita la IP que muestra la terminal (no `localhost` desde el móvil). La aplicación requiere ejecución de **Node.js**; **no basta subir `index.html` a un hosting estático**, porque el servidor valida contraseñas, tiempos y envía scores. Para publicarla en internet, usa un hosting que ejecute Node 18+ y HTTPS, además de un almacenamiento persistente para `data/`.
+
+## Desarrollo y verificación
+
+```bash
+npm test
+```
+
+Las pruebas usan un **simulador local de Supabase**: no envían calificaciones al proyecto real. Incluyen selección inválida, puntuaciones por nivel, 45 minutos, segundo intento con nota menor, resultado sin retos y consulta pública.
+
+## Funcionalidades originales que se conservan
+
+- Cinco retos secuenciales de HTML/DOM/CSS/JavaScript/Base64, validación de contraseñas en el servidor, cronómetro en servidor y video inicial.
+- Archivo local `data/equipos.json` con intentos y cookies de sesión. El servidor docente original sigue accesible en `/admin` para quien lo utilice, pero **no hace falta entrar ahí para enviar scores a Supabase**. Reiniciar las partidas locales desde ese panel **no borra** los mejores resultados de Supabase.
+- Contraseñas de práctica en `app.js` (`LEVELS`), con pistas y explicación en `GUIA_DOCENTE.md`.
+
+## Nota sobre datos de una versión anterior
+
+Si reutilizas `data/equipos.json` de una edición donde los equipos escribían nombres libres, sus intentos antiguos se conservan como historial local, pero **no se sincronizan a Supabase** porque no tenían asignado un equipo numérico (1–20). Las misiones iniciadas desde esta versión sí lo hacen.
